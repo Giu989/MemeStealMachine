@@ -1,0 +1,136 @@
+//
+//  ViewController.swift
+//  Scraper
+//
+//  Created by Giulio Crisanti on 26/09/2016.
+//  Copyright © 2016 Giulio Crisanti. All rights reserved.
+//
+
+import Cocoa
+import Foundation
+import Kanna
+
+class ViewController: NSViewController {
+    
+    var memeArray = [meme]()
+    var stringURLofMemeArray = [String]()
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // Do any additional setup after loading the view.
+        
+        getRawURL(URL_TO_SCRAPE: "http://daily-meme.tumblr.com")
+        getRawURL(URL_TO_SCRAPE: "http://ifunny.co")
+        getRawURL(URL_TO_SCRAPE: "http://www.quickmeme.com")
+
+        TagMeme()
+        
+        stringURLofMemeArray = MakeProcessedMemeArray(array: memeArray)
+        
+        for a in stringURLofMemeArray { //temp to check
+            print(a)
+        }
+    }
+    
+    override var representedObject: Any? {
+        didSet {
+            // Update the view, if already loaded.
+        }
+    }
+    func getRawURL(URL_TO_SCRAPE:String) {
+        
+        let myURLString = URL_TO_SCRAPE
+        let myURL = URL(string: myURLString)
+        var myHTMLString = ""
+        
+        do {
+            myHTMLString = try String(contentsOf: myURL!)
+        } catch let error {
+            print("Error: \(error)")
+        }
+        if let doc = Kanna.HTML(html: myHTMLString, encoding: String.Encoding.utf8) {
+            for node in doc.css("img") { //yessss!
+                //print(node["src"]!)
+                let a = meme()
+                a.isMeme = false //for the moment, will be set to true later if it gets past filter
+                a.source = URL_TO_SCRAPE
+                a.URL = node["src"]!
+                memeArray.append(a)
+            }
+        }
+    }
+    
+    class meme {
+        
+        var URL:String = ""
+        var isMeme:Bool = true
+        var source:String = ""
+    }
+    
+    func MakeProcessedMemeArray(array:[meme]) -> [String] {
+        
+        var stringArray = [String]()
+        
+        for testmeme in memeArray {
+            if testmeme.isMeme == true {
+                stringArray.append(testmeme.URL)
+            }
+        }
+        
+        return stringArray
+    }
+    
+    func TagMeme() {
+        
+        for meme in memeArray {
+            if meme.source == "http://ifunny.co" {
+                //rules for ifunny.co
+                if meme.URL.contains("img.ifcdn.com") && meme.URL.contains("_1.jpg") { //_3.jpg seems to be for video previews
+                    meme.isMeme = true
+                }
+            }
+            if meme.source == "http://daily-meme.tumblr.com" {
+                //rules for tumblr memes
+                if meme.URL.contains("media.tumblr.com") && meme.URL.contains("500.jpg") { //250.jpg seems to be side image/ad
+                    meme.isMeme = true
+                }
+            }
+            if meme.source == "http://www.quickmeme.com" {
+                //rules for tumblr memes
+                if meme.URL.contains(".jpg") { //avoid /images/loader.gif
+                    meme.isMeme = true
+                }
+            }
+            
+            //add other meme sources as they come
+        }
+    }
+}
+
+extension String {
+    func contains(find: String) -> Bool {
+        return self.range(of: find) != nil
+    }
+}
+
+
+//        let searchstr = "content-resource__image js-open-content"//"content-resource__image js-open-content"
+//        let mystr = myHTMLString
+//        let ranges: [NSRange]
+//
+//        do {
+//            let regex = try NSRegularExpression(pattern: searchstr, options: [])
+//
+//            ranges = regex.matches(in: mystr, options: [], range: NSMakeRange(0, mystr.characters.count)).map {$0.range}
+//        }
+//        catch {
+//            // There was a problem creating the regular expression
+//            ranges = []
+//        }
+//
+//        for a in ranges {
+//            //  print(a.location)
+//        }
+
+
